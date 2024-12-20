@@ -18,7 +18,7 @@ class PriceSelectionOverlay extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         ElevatedButton(onPressed: onBuy, child: const Text('Buy STP')),
-        ElevatedButton(onPressed: () {}, child: Text(price)),
+        Text(price),
         ElevatedButton(onPressed: onSell, child: const Text('Sell STP')),
       ],
     );

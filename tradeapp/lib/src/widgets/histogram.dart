@@ -7,10 +7,15 @@ class HistogramBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: value.toDouble(),
-      height: 20,
-      color: Colors.greenAccent,
+    return Row(
+      children: [
+        Container(
+          width: value.toDouble(),
+          height: 20,
+          color: Colors.greenAccent,
+        ),
+        Text(value.toString()),
+      ],
     );
   }
 }
