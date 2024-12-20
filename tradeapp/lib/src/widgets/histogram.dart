@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 class HistogramBar extends StatelessWidget {
   final int value;
+  final Color color;
 
-  const HistogramBar({super.key, required this.value});
+  const HistogramBar({super.key, required this.value, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +13,7 @@ class HistogramBar extends StatelessWidget {
         Container(
           width: value.toDouble(),
           height: 20,
-          color: Colors.greenAccent,
+          color: color,
         ),
         Text(value.toString()),
       ],

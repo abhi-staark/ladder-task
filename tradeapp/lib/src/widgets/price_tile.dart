@@ -61,7 +61,10 @@ class _PriceTileState extends State<PriceTile> {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              HistogramBar(value: int.parse(widget.quantity)),
+              HistogramBar(
+                value: int.parse(widget.quantity),
+                color: Colors.black38,
+              ),
             ],
           ),
         ),
