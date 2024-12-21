@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:tradeapp/src/constants/app_sizes.dart';
-import 'package:tradeapp/src/features/ladder_view/presentation/widgets/order_indicator.dart';
 import 'package:tradeapp/src/features/ladder_view/presentation/widgets/price_selection_overlay.dart';
 import 'package:tradeapp/src/theme/app_theme.dart';
 import 'package:tradeapp/src/utils/helper_classes.dart';
-import 'package:tradeapp/src/utils/helper_functions.dart';
 import 'package:tradeapp/src/widgets/histogram.dart';
-import 'package:tradeapp/src/widgets/price_tile.dart';
-
-import 'package:flutter/material.dart';
 
 class PriceLadder extends StatefulWidget {
   final List<Map<String, dynamic>> asks = [
@@ -35,18 +30,70 @@ class PriceLadder extends StatefulWidget {
 }
 
 class _PriceLadderState extends State<PriceLadder> {
-  String? _selectedPrice; // To track the selected price for overlay
-  bool _isAskOverlay = false; // To track if the overlay is for asks or bids
+  OverlayEntry? _overlayEntry;
+  String _selectedPrice = '';
+
+  void _showOverlay(
+      BuildContext context, Map<String, dynamic> item, bool isAsk) {
+    // Calculate the position of the tapped tile
+    RenderBox renderBox = context.findRenderObject() as RenderBox;
+    Offset position = renderBox.localToGlobal(Offset.zero);
+    _overlayEntry = OverlayEntry(
+      builder: (context) => GestureDetector(
+        onTap: _removeOverlay, // Close overlay when tapping outside
+        child: Stack(
+          children: [
+            // Dimmed background
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.5),
+              ),
+            ),
+            // Overlay widget
+            Positioned(
+              left: position.dx,
+              top: position.dy,
+              child: Material(
+                color: Colors.transparent,
+                child: PriceSelectionOverlay(
+                  price: item['price'],
+                  onBuy: () {
+                    _handleBuy(
+                        item['price'], isAsk ? widget.asks : widget.bids);
+                    _removeOverlay();
+                  },
+                  onSell: () {
+                    _handleSell(
+                        item['price'], isAsk ? widget.asks : widget.bids);
+                    _removeOverlay();
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    _selectedPrice = '';
+
+    setState(() {});
+  }
 
   void _handleBuy(String price, List<Map<String, dynamic>> list) {
     setState(() {
       for (var item in list) {
         if (item['price'] == price) {
           item['orderStatus'] = 'openBuy';
+          _selectedPrice = '';
         }
       }
-      _isAskOverlay = false;
-      _selectedPrice = null; // Close the overlay
     });
   }
 
@@ -55,10 +102,9 @@ class _PriceLadderState extends State<PriceLadder> {
       for (var item in list) {
         if (item['price'] == price) {
           item['orderStatus'] = 'openSell';
+          _selectedPrice = '';
         }
       }
-      _isAskOverlay = false;
-      _selectedPrice = null; // Close the overlay
     });
   }
 
@@ -79,7 +125,6 @@ class _PriceLadderState extends State<PriceLadder> {
 
   Widget _buildPriceTile(Map<String, dynamic> item, Color color, bool isAsk) {
     String orderStatus = item['orderStatus'] ?? '';
-    bool isSelected = _selectedPrice == item['price'] && _isAskOverlay == isAsk;
 
     return DragTarget<Map<String, dynamic>>(
       onWillAccept: (data) {
@@ -88,106 +133,89 @@ class _PriceLadderState extends State<PriceLadder> {
                 item['price']; // Prevent dropping onto the same tile
       },
       onAccept: (data) {
-        if (data != null &&
-            data['price'] != null &&
-            data['orderStatus'] != null) {
+        if (data['price'] != null && data['orderStatus'] != null) {
           _updateOrder(data['price'], item['price'],
               isAsk ? widget.asks : widget.bids, data['orderStatus']);
         }
       },
       builder: (context, candidateData, rejectedData) {
         return InkWell(
-          onTap: !isSelected
-              ? () {
-                  setState(() {
-                    _selectedPrice = item['price'];
-                    _isAskOverlay = isAsk;
-                  });
-                }
-              : null,
+          onTap: () {
+            setState(() {
+              _selectedPrice = item['price'];
+            });
+            _showOverlay(context, item, isAsk);
+          },
           child: Stack(
             children: [
-              SizedBox(
-                height: 50,
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 1,
-                      child: SizedBox(
-                        width: 100,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            if (!item['isAsk'])
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.start, // Facing right
-                                children: [
+              (_selectedPrice != item['price'])
+                  ? SizedBox(
+                      height: 50,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 1,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                if (!item['isAsk'])
                                   HistogramBar(
                                     value: int.parse(item['oi']),
                                     color: color,
                                     isAsk: item['isAsk'],
-                                  )
-                                ],
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Center(
-                        child: Text(item['price'],
-                            style: myTextTheme.bodySmall!
-                                .copyWith(fontWeight: FontWeight.w400)),
-                      ),
-                    ),
-                    SizedBox(
-                      width: 100,
-                      child: Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment.end, // Facing right
-                        children: [
-                          if (item['isAsk'])
-                            SizedBox(
-                              width: 100,
-                              height: 50,
-                              child: HistogramBar(
-                                value: int.parse(item['oi']),
-                                color: color,
-                                isAsk: item['isAsk'],
-                              ),
+                                  ),
+                              ],
                             ),
-                          //SizedBox(width: 20, child: Text(item['oi']))
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Center(
+                              child: Text(item['price'],
+                                  style: myTextTheme.bodySmall!
+                                      .copyWith(fontWeight: FontWeight.w400)),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 100,
+                            child: Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.end, // Facing right
+                              children: [
+                                if (item['isAsk'])
+                                  SizedBox(
+                                    width: 100,
+                                    height: 50,
+                                    child: HistogramBar(
+                                      value: int.parse(item['oi']),
+                                      color: color,
+                                      isAsk: item['isAsk'],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isSelected)
-                PriceSelectionOverlay(
-                  price: item['price'],
-                  onBuy: () => _handleBuy(
-                      item['price'], isAsk ? widget.asks : widget.bids),
-                  onSell: () => _handleSell(
-                      item['price'], isAsk ? widget.asks : widget.bids),
-                ),
+                    )
+                  : const SizedBox(height: 50),
               if (orderStatus == 'openBuy')
                 Positioned(
                   left: AppSizes.appPadding,
                   top: 0,
                   bottom: 0,
-                  child: Draggable<Map<String, dynamic>>(
-                    data: {
-                      'price': item['price'],
-                      'oi': item['oi'],
-                      'orderStatus': item['orderStatus']
-                    },
-                    feedback: OrderIndicator(text: "+1 LMT", color: color),
-                    childWhenDragging:
-                        OrderIndicator(text: "+1 LMT", color: color),
-                    child: OrderIndicator(text: "+1 LMT", color: color),
+                  child: SizedBox(
+                    height: 20,
+                    child: Draggable<Map<String, dynamic>>(
+                      data: {
+                        'price': item['price'],
+                        'oi': item['oi'],
+                        'orderStatus': item['orderStatus']
+                      },
+                      feedback:
+                          _buildOrderIndicator(text: "+1 LMT", color: color),
+                      childWhenDragging: const SizedBox.shrink(),
+                      child: _buildOrderIndicator(text: "+1 LMT", color: color),
+                    ),
                   ),
                 ),
               if (orderStatus == 'openSell')
@@ -201,10 +229,10 @@ class _PriceLadderState extends State<PriceLadder> {
                       'oi': item['oi'],
                       'orderStatus': item['orderStatus']
                     },
-                    feedback: OrderIndicator(text: "-1 LMT", color: color),
-                    childWhenDragging:
-                        OrderIndicator(text: "-1 LMT", color: color),
-                    child: OrderIndicator(text: "-1 LMT", color: color),
+                    feedback:
+                        _buildOrderIndicator(text: "-1 LMT", color: color),
+                    childWhenDragging: const SizedBox.shrink(),
+                    child: _buildOrderIndicator(text: "-1 LMT", color: color),
                   ),
                 ),
             ],
@@ -215,32 +243,56 @@ class _PriceLadderState extends State<PriceLadder> {
   }
 
   Widget _buildLtp(String ltp) {
-    return Row(
-      children: [
-        Expanded(
-          child: CustomPaint(
-            painter: DottedLinePainter(color: Colors.grey),
-            child: const SizedBox(height: 1), // Set height for the dotted line
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSizes.appPadding),
+      child: Row(
+        children: [
+          Expanded(
+            child: CustomPaint(
+              painter: DottedLinePainter(color: Colors.grey),
+              child:
+                  const SizedBox(height: 1), // Set height for the dotted line
+            ),
           ),
+          Container(
+            height: 31,
+            width: 87,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade800,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Center(
+              child: Text(ltp, style: myTextTheme.bodySmall),
+            ),
+          ),
+          Expanded(
+            child: CustomPaint(
+              painter: DottedLinePainter(color: Colors.grey),
+              child:
+                  const SizedBox(height: 1), // Set height for the dotted line
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderIndicator({required Color color, required String text}) {
+    return Padding(
+      padding: const EdgeInsets.all(AppSizes.appPadding * 0.9),
+      child: Container(
+        width: 89,
+        height: 34,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(30),
         ),
-        Container(
-          height: 31,
-          width: 87,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade800,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Center(
-            child: Text(ltp, style: myTextTheme.bodySmall),
-          ),
+        child: Center(
+          child: Text(text,
+              style:
+                  myTextTheme.bodySmall!.copyWith(fontWeight: FontWeight.w500)),
         ),
-        Expanded(
-          child: CustomPaint(
-            painter: DottedLinePainter(color: Colors.grey),
-            child: const SizedBox(height: 1), // Set height for the dotted line
-          ),
-        ),
-      ],
+      ),
     );
   }
 

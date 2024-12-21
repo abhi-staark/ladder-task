@@ -60,7 +60,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     Icons.tune,
                     color: AppColor.whiteColor,
                   ),
-                  onPressed: onBack),
+                  onPressed: () {}),
             ],
           ),
 
