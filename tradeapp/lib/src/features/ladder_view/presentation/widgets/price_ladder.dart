@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:tradeapp/src/constants/app_sizes.dart';
+import 'package:tradeapp/src/features/ladder_view/presentation/widgets/order_indicator.dart';
 import 'package:tradeapp/src/features/ladder_view/presentation/widgets/price_selection_overlay.dart';
+import 'package:tradeapp/src/theme/app_theme.dart';
+import 'package:tradeapp/src/utils/helper_classes.dart';
 import 'package:tradeapp/src/utils/helper_functions.dart';
 import 'package:tradeapp/src/widgets/histogram.dart';
 import 'package:tradeapp/src/widgets/price_tile.dart';
@@ -8,18 +12,18 @@ import 'package:flutter/material.dart';
 
 class PriceLadder extends StatefulWidget {
   final List<Map<String, dynamic>> asks = [
-    {'price': '1002.0', 'oi': '70', 'orderStatus': 'noOrder'},
-    {'price': '1001.5', 'oi': '50', 'orderStatus': 'noOrder'},
-    {'price': '1001.0', 'oi': '70', 'orderStatus': 'noOrder'},
-    {'price': '1000.5', 'oi': '120', 'orderStatus': 'noOrder'},
+    {'price': '1002.0', 'oi': '70', 'isAsk': true, 'orderStatus': 'noOrder'},
+    {'price': '1001.5', 'oi': '50', 'isAsk': true, 'orderStatus': 'noOrder'},
+    {'price': '1001.0', 'oi': '70', 'isAsk': true, 'orderStatus': 'noOrder'},
+    {'price': '1000.5', 'oi': '120', 'isAsk': true, 'orderStatus': 'noOrder'},
   ];
 
   final List<Map<String, dynamic>> bids = [
-    {'price': '999.5', 'oi': '30', 'orderStatus': 'noOrder'},
-    {'price': '999.0', 'oi': '60', 'orderStatus': 'noOrder'},
-    {'price': '998.5', 'oi': '90', 'orderStatus': 'noOrder'},
-    {'price': '998.0', 'oi': '60', 'orderStatus': 'noOrder'},
-    {'price': '997.5', 'oi': '90', 'orderStatus': 'noOrder'},
+    {'price': '999.5', 'oi': '30', 'isAsk': false, 'orderStatus': 'noOrder'},
+    {'price': '999.0', 'oi': '60', 'isAsk': false, 'orderStatus': 'noOrder'},
+    {'price': '998.5', 'oi': '90', 'isAsk': false, 'orderStatus': 'noOrder'},
+    {'price': '998.0', 'oi': '60', 'isAsk': false, 'orderStatus': 'noOrder'},
+    {'price': '997.5', 'oi': '90', 'isAsk': false, 'orderStatus': 'noOrder'},
   ];
 
   final String ltp = '1000.0';
@@ -92,7 +96,7 @@ class _PriceLadderState extends State<PriceLadder> {
         }
       },
       builder: (context, candidateData, rejectedData) {
-        return GestureDetector(
+        return InkWell(
           onTap: !isSelected
               ? () {
                   setState(() {
@@ -108,11 +112,54 @@ class _PriceLadderState extends State<PriceLadder> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Center(
-                        child: Text(
-                          item['price'],
-                          style: const TextStyle(fontSize: 16),
+                      flex: 1,
+                      child: SizedBox(
+                        width: 100,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            if (!item['isAsk'])
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.start, // Facing right
+                                children: [
+                                  HistogramBar(
+                                    value: int.parse(item['oi']),
+                                    color: color,
+                                    isAsk: item['isAsk'],
+                                  )
+                                ],
+                              ),
+                          ],
                         ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Center(
+                        child: Text(item['price'],
+                            style: myTextTheme.bodySmall!
+                                .copyWith(fontWeight: FontWeight.w400)),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 100,
+                      child: Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.end, // Facing right
+                        children: [
+                          if (item['isAsk'])
+                            SizedBox(
+                              width: 100,
+                              height: 50,
+                              child: HistogramBar(
+                                value: int.parse(item['oi']),
+                                color: color,
+                                isAsk: item['isAsk'],
+                              ),
+                            ),
+                          //SizedBox(width: 20, child: Text(item['oi']))
+                        ],
                       ),
                     ),
                   ],
@@ -128,7 +175,7 @@ class _PriceLadderState extends State<PriceLadder> {
                 ),
               if (orderStatus == 'openBuy')
                 Positioned(
-                  left: 8,
+                  left: AppSizes.appPadding,
                   top: 0,
                   bottom: 0,
                   child: Draggable<Map<String, dynamic>>(
@@ -137,17 +184,15 @@ class _PriceLadderState extends State<PriceLadder> {
                       'oi': item['oi'],
                       'orderStatus': item['orderStatus']
                     },
-                    feedback:
-                        Icon(Icons.shopping_cart, color: Colors.blue, size: 24),
-                    childWhenDragging: Icon(Icons.shopping_cart,
-                        color: Colors.blue.withOpacity(0.5), size: 24),
-                    child:
-                        Icon(Icons.shopping_cart, color: Colors.blue, size: 24),
+                    feedback: OrderIndicator(text: "+1 LMT", color: color),
+                    childWhenDragging:
+                        OrderIndicator(text: "+1 LMT", color: color),
+                    child: OrderIndicator(text: "+1 LMT", color: color),
                   ),
                 ),
               if (orderStatus == 'openSell')
                 Positioned(
-                  right: 8,
+                  right: AppSizes.appPadding,
                   top: 0,
                   bottom: 0,
                   child: Draggable<Map<String, dynamic>>(
@@ -156,16 +201,46 @@ class _PriceLadderState extends State<PriceLadder> {
                       'oi': item['oi'],
                       'orderStatus': item['orderStatus']
                     },
-                    feedback: Icon(Icons.sell, color: Colors.orange, size: 24),
-                    childWhenDragging: Icon(Icons.sell,
-                        color: Colors.orange.withOpacity(0.5), size: 24),
-                    child: Icon(Icons.sell, color: Colors.orange, size: 24),
+                    feedback: OrderIndicator(text: "-1 LMT", color: color),
+                    childWhenDragging:
+                        OrderIndicator(text: "-1 LMT", color: color),
+                    child: OrderIndicator(text: "-1 LMT", color: color),
                   ),
                 ),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildLtp(String ltp) {
+    return Row(
+      children: [
+        Expanded(
+          child: CustomPaint(
+            painter: DottedLinePainter(color: Colors.grey),
+            child: const SizedBox(height: 1), // Set height for the dotted line
+          ),
+        ),
+        Container(
+          height: 31,
+          width: 87,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade800,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Center(
+            child: Text(ltp, style: myTextTheme.bodySmall),
+          ),
+        ),
+        Expanded(
+          child: CustomPaint(
+            painter: DottedLinePainter(color: Colors.grey),
+            child: const SizedBox(height: 1), // Set height for the dotted line
+          ),
+        ),
+      ],
     );
   }
 
@@ -176,18 +251,7 @@ class _PriceLadderState extends State<PriceLadder> {
         ...widget.asks.map(
           (ask) => _buildPriceTile(ask, Colors.red, true),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: Center(
-            child: Text(
-              '-------- ${widget.ltp} --------',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
+        _buildLtp(widget.ltp),
         ...widget.bids.map(
           (bid) => _buildPriceTile(bid, Colors.green, false),
         ),

@@ -64,6 +64,7 @@ class _PriceTileState extends State<PriceTile> {
               HistogramBar(
                 value: int.parse(widget.quantity),
                 color: Colors.black38,
+                isAsk: true,
               ),
             ],
           ),
